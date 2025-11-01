@@ -4,7 +4,8 @@ Esta es una utilidad de escritorio para Python que provee una interfaz gráfica 
 
 La aplicación permite ejecutar pruebas de velocidad, parsea los resultados JSON en vivo, y los muestra en medidores visuales (velocímetros) y en un panel de resultados detallados.
 
-<img width="1861" height="1072" alt="image" src="https://github.com/user-attachments/assets/6bdc1316-0eb6-46e7-8d04-cd17bed08c63" />
+<img width="880" height="888" alt="image" src="https://github.com/user-attachments/assets/83d929ec-87e4-4c24-8c88-454403b41742" />
+
 
 
 ## 📋 Características Principales
