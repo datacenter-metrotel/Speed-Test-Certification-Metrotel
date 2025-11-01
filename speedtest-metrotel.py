@@ -19,15 +19,14 @@ class NetTestApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Monitor de Red (Speedtest & iPerf3)")
-        self.root.geometry("850x800") # Altura para el nuevo layout
+        self.root.geometry("850x830") 
         self.root.resizable(True, True) 
 
         self.queue = queue.Queue()
         self.process = None
         self.current_test_type = "ping_check" 
         self.connectivity_ok = False 
-
-        # --- ¡LAYOUT REORDENADO! ---
+        self.speedtest_max_speed = 10000 
 
         # 1. Medidores de Velocidad (Arriba)
         meter_frame = ttk.Labelframe(root, text="Velocidad Actual (Mbps)", padding=10)
@@ -116,38 +115,51 @@ class NetTestApp:
 
         ttk.Label(iperf_settings_frame, text="Velocidad (Mbps):").grid(row=1, column=0, sticky="w", pady=2)
         self.iperf_speed_entry = ttk.Entry(iperf_settings_frame, width=10)
-        self.iperf_speed_entry.insert(0, "100") 
+        self.iperf_speed_entry.insert(0, "10000") 
         self.iperf_speed_entry.grid(row=1, column=1, columnspan=2, sticky="w", padx=5, pady=2)
 
-        ttk.Label(iperf_settings_frame, text="Test:").grid(row=2, column=0, sticky="w", pady=5)
+        ttk.Label(iperf_settings_frame, text="Parallel Streams (-P):").grid(row=2, column=0, sticky="w", pady=2)
+        self.iperf_parallel_entry = ttk.Entry(iperf_settings_frame, width=10)
+        self.iperf_parallel_entry.insert(0, "1") 
+        self.iperf_parallel_entry.grid(row=2, column=1, columnspan=2, sticky="w", padx=5, pady=2)
+
+        # --- ¡CAMBIO AQUÍ! (wraplength eliminado) ---
+        ttk.Label(iperf_settings_frame, text="Test:").grid(row=3, column=0, sticky="w", pady=5)
         
-        self.iperf_direction = tk.StringVar(value="bidir") 
+        self.iperf_direction = tk.StringVar(value="upload") 
         
         ttk.Radiobutton(
             iperf_settings_frame, 
-            text="Upload y Download (--bidir)", 
-            variable=self.iperf_direction, 
-            value="bidir"
-        ).grid(row=2, column=1, sticky="w")
-        
-        ttk.Radiobutton(
-            iperf_settings_frame, 
-            text="Upload (Estándar)", 
+            text="Modo Estandar: Origen el Cliente", 
             variable=self.iperf_direction, 
             value="upload"
-        ).grid(row=3, column=1, sticky="w")
+        ).grid(row=3, column=1, sticky="w", pady=2) 
         
         ttk.Radiobutton(
             iperf_settings_frame, 
-            text="Download (-R)", 
+            text='Modo Reverso: Origen Metrotel "-R"', 
             variable=self.iperf_direction, 
             value="download"
-        ).grid(row=4, column=1, sticky="w")
+        ).grid(row=4, column=1, sticky="w", pady=2) 
+
+        ttk.Radiobutton(
+            iperf_settings_frame, 
+            text='Modo Dual: Origen Simultaneo Ambos "--bidir"', 
+            variable=self.iperf_direction, 
+            value="bidir"
+        ).grid(row=5, column=1, sticky="w", pady=2) 
+        # -------------------------------------------------
 
         iperf_settings_frame.columnconfigure(1, weight=1)
+        
+        iperf_button_frame = ttk.Frame(iperf_frame)
+        iperf_button_frame.pack(fill=X, pady=5, padx=5)
+        
+        self.iperf_debug_button = ttk.Button(iperf_button_frame, text="Depuración en Vivo", command=self.start_iperf_debug, state=DISABLED, bootstyle=(OUTLINE, INFO))
+        self.iperf_debug_button.pack(side=LEFT, anchor=W)
 
-        self.iperf_button = ttk.Button(iperf_frame, text="Iniciar Test iPerf3", command=self.start_iperf_test, state=DISABLED, bootstyle=PRIMARY)
-        self.iperf_button.pack(pady=5, padx=5, anchor=E)
+        self.iperf_button = ttk.Button(iperf_button_frame, text="Certificar Test iPerf3", command=self.start_iperf_test, state=DISABLED, bootstyle=PRIMARY)
+        self.iperf_button.pack(side=RIGHT, anchor=E)
 
         # --- Configuración de Speedtest ---
         speedtest_frame = ttk.Labelframe(parameters_frame, text="Speedtest (Ookla)", padding=10)
@@ -156,9 +168,6 @@ class NetTestApp:
         settings_frame = ttk.Frame(speedtest_frame)
         settings_frame.pack(fill=X, expand=True, padx=5)
 
-        # --- ¡CAMBIOS AQUÍ! (Combobox para Speedtest) ---
-        
-        # 1. Diccionario de servidores
         self.server_map = {
             "Metrotel (72225)": "72225",
             "Telecom Personal (54503)": "54503",
@@ -168,24 +177,26 @@ class NetTestApp:
             "Iplan (13964)": "13964"
         }
         
-        # 2. Creación del Combobox
         ttk.Label(settings_frame, text="Servidor:").grid(row=0, column=0, sticky="w", pady=5)
         self.speedtest_server_combo = ttk.Combobox(
             settings_frame,
-            width=28, # Ancho ajustado
+            width=28, 
             state="readonly",
             values=list(self.server_map.keys())
         )
         self.speedtest_server_combo.grid(row=0, column=1, sticky="w", padx=5, pady=5)
-        self.speedtest_server_combo.current(0) # Establece "Metrotel (72225)" como default
-        
-        # (Se eliminaron las etiquetas de Host y Server ID anteriores)
-        # -----------------------------------------------
+        self.speedtest_server_combo.current(0) 
         
         settings_frame.columnconfigure(1, weight=1)
 
-        self.speedtest_button = ttk.Button(speedtest_frame, text="Iniciar Speedtest", command=self.start_speedtest, state=DISABLED, bootstyle=PRIMARY)
-        self.speedtest_button.pack(pady=5, padx=5, anchor=E)
+        speedtest_button_frame = ttk.Frame(speedtest_frame)
+        speedtest_button_frame.pack(fill=X, pady=5, padx=5, side=BOTTOM)
+
+        self.speedtest_debug_button = ttk.Button(speedtest_button_frame, text="Depuración en Vivo", command=self.start_speedtest_debug, state=DISABLED, bootstyle=(OUTLINE, INFO))
+        self.speedtest_debug_button.pack(side=LEFT, anchor=W)
+
+        self.speedtest_button = ttk.Button(speedtest_button_frame, text="Certificar Test Ookla", command=self.start_speedtest, state=DISABLED, bootstyle=PRIMARY)
+        self.speedtest_button.pack(side=RIGHT, anchor=E)
         
         # --- Fin del Layout ---
 
@@ -200,7 +211,10 @@ class NetTestApp:
         
         self.iperf_button.config(state=DISABLED)
         self.speedtest_button.config(state=DISABLED)
+        self.iperf_debug_button.config(state=DISABLED)
+        self.speedtest_debug_button.config(state=DISABLED)
         self.stop_button.config(state=DISABLED)
+        
         if hasattr(self, 'recheck_button'): 
             self.recheck_button.config(state=DISABLED)
         
@@ -211,9 +225,7 @@ class NetTestApp:
         threading.Thread(target=self.execute_pre_checks, args=(self.queue,), daemon=True).start()
 
     def execute_pre_checks(self, q):
-        """
-        Chequea Ping Y Puerto 5201. Se ejecuta en un HILO SECUNDARIO.
-        """
+        """Chequea Ping Y Puerto 5201. Se ejecuta en un HILO SECUNDARIO."""
         target_host = "velocidad.metrotel.com.ar"
         target_port = 5201 
         
@@ -226,9 +238,7 @@ class NetTestApp:
                 popen_flags = 0
 
             result = subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL, 
-                stderr=subprocess.DEVNULL, 
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, 
                 creationflags=popen_flags
             )
             
@@ -254,6 +264,8 @@ class NetTestApp:
         
         self.iperf_button.config(state=start_state)
         self.speedtest_button.config(state=start_state)
+        self.iperf_debug_button.config(state=start_state)
+        self.speedtest_debug_button.config(state=start_state)
         
         self.stop_button.config(state=NORMAL if testing else DISABLED)
 
@@ -265,18 +277,25 @@ class NetTestApp:
         self.result_text.config(state=NORMAL)
         self.result_text.delete(1.0, END)
         self.result_text.insert(END, text)
+        self.result_text.see(END) # Auto-scroll
         self.result_text.config(state=DISABLED)
+
+    # --- Lógica de "Certificar" (JSON) ---
 
     def start_iperf_test(self):
         host = self.iperf_host_entry.get().strip()
         speed = self.iperf_speed_entry.get().strip()
         direction = self.iperf_direction.get()
+        parallel = self.iperf_parallel_entry.get().strip()
         
         if not host:
             messagebox.showerror("Error", "El host de iPerf3 no puede estar vacío.")
             return
         if not speed.isdigit() or int(speed) <= 0:
             messagebox.showerror("Error", "La Velocidad (Mbps) de iPerf3 debe ser un número positivo.")
+            return
+        if not parallel.isdigit() or int(parallel) <= 0:
+            messagebox.showerror("Error", "Parallel Streams (-P) debe ser un número positivo.")
             return
         
         max_speed = int(speed) * 1.5 
@@ -293,6 +312,7 @@ class NetTestApp:
 
         cmd = ['iperf3', '-c', host, '-J', '-i', '1']
         cmd.extend(['-b', f"{speed}M"])
+        cmd.extend(['-P', parallel])
         
         if direction == "download":
             cmd.append('-R') 
@@ -302,67 +322,54 @@ class NetTestApp:
         self.run_test_thread(cmd, "iperf3")
 
     def start_speedtest(self):
-        # --- ¡CAMBIO AQUÍ! Lógica para leer el Combobox ---
         selected_name = self.speedtest_server_combo.get()
         if not selected_name:
             messagebox.showerror("Error", "Por favor, selecciona un servidor de Speedtest.")
             return
-
         server_id = self.server_map.get(selected_name)
-        # ------------------------------------------------
         
-        # Ajuste del máximo del reloj basado en la captura de pantalla
-        max_speed_goal = 1000 
+        self.speedtest_max_speed = 10000 
         
-        self.dl_meter.configure(amounttotal=max_speed_goal, amountused=0)
-        self.ul_meter.configure(amounttotal=max_speed_goal, amountused=0)
+        self.dl_meter.configure(amounttotal=self.speedtest_max_speed, amountused=0)
+        self.ul_meter.configure(amounttotal=self.speedtest_max_speed, amountused=0)
         self.jitter_meter.configure(amounttotal=20, amountused=0, subtext="ms (Speedtest)")
 
         cmd = ['speedtest', '-s', server_id, '-f', 'json', '--accept-license']
         self.run_test_thread(cmd, "speedtest")
 
     def run_test_thread(self, cmd, test_type):
-        """Inicia el test en un hilo separado."""
+        """Inicia el test JSON en un hilo separado."""
         self.current_test_type = test_type 
         self.set_ui_state(testing=True)
         self.status_label.config(text=f"Iniciando {test_type}...")
         self.set_result_text("N/A")
 
-        threading.Thread(target=self.execute_command, args=(cmd, self.queue, test_type), daemon=True).start()
+        threading.Thread(target=self.execute_command_json, args=(cmd, self.queue, test_type), daemon=True).start()
         
-    def execute_command(self, cmd, q, test_type):
-        """Ejecuta el comando en un subproceso."""
+    def execute_command_json(self, cmd, q, test_type):
+        """Ejecuta el comando para JSON (Speedtest en vivo, iPerf3 al final)."""
         popen_flags = 0
         if platform.system() == "Windows":
             popen_flags = 0x08000000
             
         try:
             self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding='utf-8',
-                bufsize=1,
-                creationflags=popen_flags
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding='utf-8', bufsize=1, creationflags=popen_flags
             )
             
             if test_type == "speedtest":
                 if self.process.stdout:
                     for line in iter(self.process.stdout.readline, ''):
-                        if line:
-                            q.put(line)
-                        else:
-                            break
+                        if line: q.put(line)
+                        else: break
             
             elif test_type == "iperf3":
                 output_accumulator = []
                 if self.process.stdout:
                     for line in iter(self.process.stdout.readline, ''):
-                        if line:
-                            output_accumulator.append(line)
-                        else:
-                            break
+                        if line: output_accumulator.append(line)
+                        else: break
                 q.put("".join(output_accumulator)) 
 
             self.process.wait()
@@ -374,6 +381,93 @@ class NetTestApp:
         finally:
             q.put(None) 
             self.process = None
+
+    # --- Lógica de "Depuración" (Modo Humano) ---
+
+    def start_iperf_debug(self):
+        host = self.iperf_host_entry.get().strip()
+        speed = self.iperf_speed_entry.get().strip()
+        direction = self.iperf_direction.get()
+        parallel = self.iperf_parallel_entry.get().strip()
+        
+        if not host:
+            messagebox.showerror("Error", "El host de iPerf3 no puede estar vacío.")
+            return
+        if not speed.isdigit() or int(speed) <= 0:
+            messagebox.showerror("Error", "La Velocidad (Mbps) de iPerf3 debe ser un número positivo.")
+            return
+        if not parallel.isdigit() or int(parallel) <= 0:
+            messagebox.showerror("Error", "Parallel Streams (-P) debe ser un número positivo.")
+            return
+
+        # Comando SIN JSON
+        cmd = ['iperf3', '-c', host, '-i', '1'] 
+        cmd.extend(['-b', f"{speed}M"])
+        cmd.extend(['-P', parallel])
+        
+        if direction == "download":
+            cmd.append('-R') 
+        elif direction == "bidir":
+            cmd.append('--bidir')
+            
+        self.run_test_thread_debug(cmd)
+
+    def start_speedtest_debug(self):
+        selected_name = self.speedtest_server_combo.get()
+        if not selected_name:
+            messagebox.showerror("Error", "Por favor, selecciona un servidor de Speedtest.")
+            return
+        server_id = self.server_map.get(selected_name)
+        
+        # Comando SIN JSON
+        cmd = ['speedtest', '-s', server_id, '--accept-license'] 
+        self.run_test_thread_debug(cmd)
+
+    def run_test_thread_debug(self, cmd):
+        """Inicia el test de depuración (modo humano) en un hilo."""
+        self.current_test_type = "debug" 
+        self.set_ui_state(testing=True)
+        self.status_label.config(text=f"Iniciando depuración en vivo...")
+        
+        self.result_text.config(state=NORMAL)
+        self.result_text.delete(1.0, END)
+        self.result_text.config(state=DISABLED)
+        
+        self.dl_meter.configure(amountused=0)
+        self.ul_meter.configure(amountused=0)
+        self.jitter_meter.configure(amountused=0)
+
+        threading.Thread(target=self.execute_command_debug, args=(cmd, self.queue), daemon=True).start()
+
+    def execute_command_debug(self, cmd, q):
+        """Ejecuta el comando y pone CADA LÍNEA (humana) en la cola."""
+        popen_flags = 0
+        if platform.system() == "Windows":
+            popen_flags = 0x08000000
+            
+        try:
+            self.process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding='utf-8', bufsize=1, creationflags=popen_flags
+            )
+            
+            if self.process.stdout:
+                for line in iter(self.process.stdout.readline, ''):
+                    if line: 
+                        q.put(f"DEBUG_LINE: {line}") # Prefijo para distinguirlo
+                    else: 
+                        break
+            self.process.wait()
+
+        except FileNotFoundError:
+            q.put(f"ERROR: Comando '{cmd[0]}' no encontrado.\n")
+        except Exception as e:
+            q.put(f"ERROR: {str(e)}\n")
+        finally:
+            q.put(None) 
+            self.process = None
+
+    # --- Lógica de la Cola (Maneja ambos tipos de test) ---
 
     def process_queue(self):
         """Procesa mensajes de la cola en el HILO PRINCIPAL (Loop perpetuo)."""
@@ -413,7 +507,14 @@ class NetTestApp:
                 self.ul_meter.configure(amountused=0)
                 self.jitter_meter.configure(amountused=0)
 
-            elif test_type not in ["ping_check", "idle"]:
+            elif line.startswith("DEBUG_LINE: "):
+                debug_output = line.replace("DEBUG_LINE: ", "")
+                self.result_text.config(state=NORMAL)
+                self.result_text.insert(END, debug_output)
+                self.result_text.see(END)
+                self.result_text.config(state=DISABLED)
+
+            elif test_type not in ["ping_check", "idle", "debug"]:
                 self.parse_json_update(line, test_type)
 
         except queue.Empty:
@@ -457,9 +558,9 @@ class NetTestApp:
                 self.status_label.config(text=f"Probando {test_name.capitalize()}: {speed_mbps:.2f} Mbps ({progress:.0f}%)", foreground="blue")
                 
                 if test_name == "download":
-                    self.dl_meter.configure(amountused=int(speed_mbps))
+                    self.dl_meter.configure(amounttotal=self.speedtest_max_speed, amountused=int(speed_mbps))
                 elif test_name == "upload":
-                    self.ul_meter.configure(amountused=int(speed_mbps))
+                    self.ul_meter.configure(amounttotal=self.speedtest_max_speed, amountused=int(speed_mbps))
             
             elif test_name == "result":
                 dl = data.get("download", {}).get("bandwidth", 0) * 8 / 1_000_000
@@ -481,7 +582,7 @@ class NetTestApp:
                 
                 self.dl_meter.configure(amountused=int(dl))
                 self.ul_meter.configure(amountused=int(ul))
-                self.jitter_meter.configure(amountused=round(jitter, 2)) # Jitter puede ser decimal
+                self.jitter_meter.configure(amountused=round(jitter, 2)) 
 
                 if url != 'N/A' and url.startswith('http'):
                     try:
