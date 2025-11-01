@@ -33,11 +33,9 @@ class NetTestApp:
         meter_frame = ttk.Labelframe(root, text="Velocidad Actual (Mbps)", padding=10)
         meter_frame.pack(side=TOP, fill=X, padx=10, pady=5)
 
-        # Frame interno para centrar los 3 medidores
         center_meter_frame = ttk.Frame(meter_frame)
         center_meter_frame.pack()
 
-        # Medidor de Download
         dl_frame = ttk.Frame(center_meter_frame)
         ttk.Label(dl_frame, text="Download Media").pack(pady=(0,5))
         self.dl_meter = ttk.Meter(
@@ -48,7 +46,6 @@ class NetTestApp:
         self.dl_meter.pack(pady=5, padx=10)
         dl_frame.pack(side=LEFT, padx=10)
 
-        # Medidor de Upload
         ul_frame = ttk.Frame(center_meter_frame)
         ttk.Label(ul_frame, text="Upload Media").pack(pady=(0,5))
         self.ul_meter = ttk.Meter(
@@ -59,7 +56,6 @@ class NetTestApp:
         self.ul_meter.pack(pady=5, padx=10)
         ul_frame.pack(side=LEFT, padx=10)
 
-        # Medidor de Jitter
         jitter_frame = ttk.Frame(center_meter_frame)
         ttk.Label(jitter_frame, text="Jitter").pack(pady=(0,5))
         self.jitter_meter = ttk.Meter(
@@ -160,13 +156,31 @@ class NetTestApp:
         settings_frame = ttk.Frame(speedtest_frame)
         settings_frame.pack(fill=X, expand=True, padx=5)
 
-        ttk.Label(settings_frame, text="Host:").grid(row=0, column=0, sticky="w")
-        ttk.Label(settings_frame, text="certificaciones.metrotel.com.ar", foreground="grey").grid(row=0, column=1, sticky="w", padx=5)
-
-        ttk.Label(settings_frame, text="Server ID:").grid(row=1, column=0, sticky="w", pady=5)
-        self.speedtest_server_entry = ttk.Entry(settings_frame, width=30)
-        self.speedtest_server_entry.insert(0, "72225")
-        self.speedtest_server_entry.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+        # --- ¡CAMBIOS AQUÍ! (Combobox para Speedtest) ---
+        
+        # 1. Diccionario de servidores
+        self.server_map = {
+            "Metrotel (72225)": "72225",
+            "Telecom Personal (54503)": "54503",
+            "Telecentro (900)": "900",
+            "Claro Argentina (5181)": "5181",
+            "Cabase (4336)": "4336",
+            "Iplan (13964)": "13964"
+        }
+        
+        # 2. Creación del Combobox
+        ttk.Label(settings_frame, text="Servidor:").grid(row=0, column=0, sticky="w", pady=5)
+        self.speedtest_server_combo = ttk.Combobox(
+            settings_frame,
+            width=28, # Ancho ajustado
+            state="readonly",
+            values=list(self.server_map.keys())
+        )
+        self.speedtest_server_combo.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+        self.speedtest_server_combo.current(0) # Establece "Metrotel (72225)" como default
+        
+        # (Se eliminaron las etiquetas de Host y Server ID anteriores)
+        # -----------------------------------------------
         
         settings_frame.columnconfigure(1, weight=1)
 
@@ -261,8 +275,8 @@ class NetTestApp:
         if not host:
             messagebox.showerror("Error", "El host de iPerf3 no puede estar vacío.")
             return
-        if not speed.isdigit():
-            messagebox.showerror("Error", "La Velocidad (Mbps) de iPerf3 debe ser un número.")
+        if not speed.isdigit() or int(speed) <= 0:
+            messagebox.showerror("Error", "La Velocidad (Mbps) de iPerf3 debe ser un número positivo.")
             return
         
         max_speed = int(speed) * 1.5 
@@ -288,14 +302,20 @@ class NetTestApp:
         self.run_test_thread(cmd, "iperf3")
 
     def start_speedtest(self):
-        server_id = self.speedtest_server_entry.get().strip()
-        
-        if not server_id.isdigit():
-            messagebox.showerror("Error", "El Server ID de Speedtest debe ser un número (ej: 72225).")
+        # --- ¡CAMBIO AQUÍ! Lógica para leer el Combobox ---
+        selected_name = self.speedtest_server_combo.get()
+        if not selected_name:
+            messagebox.showerror("Error", "Por favor, selecciona un servidor de Speedtest.")
             return
+
+        server_id = self.server_map.get(selected_name)
+        # ------------------------------------------------
         
-        self.dl_meter.configure(amounttotal=200, amountused=0)
-        self.ul_meter.configure(amounttotal=200, amountused=0)
+        # Ajuste del máximo del reloj basado en la captura de pantalla
+        max_speed_goal = 1000 
+        
+        self.dl_meter.configure(amounttotal=max_speed_goal, amountused=0)
+        self.ul_meter.configure(amounttotal=max_speed_goal, amountused=0)
         self.jitter_meter.configure(amounttotal=20, amountused=0, subtext="ms (Speedtest)")
 
         cmd = ['speedtest', '-s', server_id, '-f', 'json', '--accept-license']
@@ -461,7 +481,7 @@ class NetTestApp:
                 
                 self.dl_meter.configure(amountused=int(dl))
                 self.ul_meter.configure(amountused=int(ul))
-                self.jitter_meter.configure(amountused=int(jitter))
+                self.jitter_meter.configure(amountused=round(jitter, 2)) # Jitter puede ser decimal
 
                 if url != 'N/A' and url.startswith('http'):
                     try:
@@ -497,7 +517,7 @@ class NetTestApp:
                         )
                         self.ul_meter.configure(amountused=int(upload_speed))
                         self.dl_meter.configure(amountused=int(download_speed))
-                        self.jitter_meter.configure(amountused=int(download_jitter)) 
+                        self.jitter_meter.configure(amountused=round(download_jitter, 2)) 
                     
                     elif direction == "upload":
                         summary = data["end"]["sum_sent"] 
@@ -509,7 +529,7 @@ class NetTestApp:
                             f"Velocidad Objetivo: {target_speed} Mbps"
                         )
                         self.ul_meter.configure(amountused=int(speed_mbps))
-                        self.jitter_meter.configure(amountused=int(jitter_ms))
+                        self.jitter_meter.configure(amountused=round(jitter_ms, 2))
 
                     elif direction == "download":
                         summary = data["end"]["sum_received"]
@@ -521,7 +541,7 @@ class NetTestApp:
                             f"Velocidad Objetivo: {target_speed} Mbps"
                         )
                         self.dl_meter.configure(amountused=int(speed_mbps))
-                        self.jitter_meter.configure(amountused=int(jitter_ms))
+                        self.jitter_meter.configure(amountused=round(jitter_ms, 2))
                     
                     self.set_result_text(result_str)
                 
