@@ -30,7 +30,7 @@ class NetTestApp:
         # --- ¡LAYOUT REORDENADO! ---
 
         # 1. Medidores de Velocidad (Arriba)
-        meter_frame = ttk.LabelFrame(root, text="Velocidad Actual (Mbps)", padding=10)
+        meter_frame = ttk.Labelframe(root, text="Velocidad Actual (Mbps)", padding=10)
         meter_frame.pack(side=TOP, fill=X, padx=10, pady=5)
 
         # Frame interno para centrar los 3 medidores
@@ -71,7 +71,7 @@ class NetTestApp:
         jitter_frame.pack(side=LEFT, padx=10)
 
         # 2. Sección de Resultados Finales
-        result_frame = ttk.LabelFrame(root, text="Resultados Finales (Seleccionable)", padding=10)
+        result_frame = ttk.Labelframe(root, text="Resultados Finales (Seleccionable)", padding=10)
         result_frame.pack(side=TOP, fill=BOTH, expand=True, padx=10, pady=5)
         
         self.result_text = tk.Text( 
@@ -87,7 +87,7 @@ class NetTestApp:
         self.result_text.config(state=DISABLED)
 
         # 3. Sección de Estado en Tiempo Real
-        status_frame = ttk.LabelFrame(root, text="Estado en Tiempo Real", padding=10)
+        status_frame = ttk.Labelframe(root, text="Estado en Tiempo Real", padding=10)
         status_frame.pack(side=TOP, fill=X, padx=10, pady=5)
 
         status_frame.columnconfigure(0, weight=1) 
@@ -107,7 +107,7 @@ class NetTestApp:
         parameters_frame.pack(side=TOP, fill=X, padx=5, pady=5)
 
         # --- Configuración de iPerf3 ---
-        iperf_frame = ttk.LabelFrame(parameters_frame, text="iPerf3", padding=10)
+        iperf_frame = ttk.Labelframe(parameters_frame, text="iPerf3", padding=10)
         iperf_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=(5, 5), pady=5)
 
         iperf_settings_frame = ttk.Frame(iperf_frame)
@@ -154,7 +154,7 @@ class NetTestApp:
         self.iperf_button.pack(pady=5, padx=5, anchor=E)
 
         # --- Configuración de Speedtest ---
-        speedtest_frame = ttk.LabelFrame(parameters_frame, text="Speedtest (Ookla)", padding=10)
+        speedtest_frame = ttk.Labelframe(parameters_frame, text="Speedtest (Ookla)", padding=10)
         speedtest_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=(5, 5), pady=5)
 
         settings_frame = ttk.Frame(speedtest_frame)
