@@ -5,7 +5,7 @@
 # Encontrar el directorio donde reside este script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 VENV_DIR="$DIR/.venv"
-PYTHON_SCRIPT="$DIR/speedtest.py" # Asegúrate de que tu script de Python se llame p.py
+PYTHON_SCRIPT="$DIR/p.py" # Asegúrate de que tu script de Python se llame p.py
 
 # 1. Crear el entorno virtual si no existe
 if [ ! -d "$VENV_DIR" ]; then
