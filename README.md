@@ -12,9 +12,9 @@ La aplicación permite ejecutar pruebas de velocidad, parsea los resultados JSON
 
 * **Medidores Visuales:** Tres relojes (medidores) para Descarga, Subida y Jitter.
 * **Soporte iPerf3:** Permite configurar host, velocidad objetivo y modo de test:
-    * Upload (Estándar)
-    * Download (`-R`)
-    * Upload y Download (`--bidir`)
+    * Modo Estándar (Tráfico generado en el Cliente)
+    * Modo Reverso (Tráfico generado en el Server "-R")
+    * Modo Dual (Tráfico generado en el Server y Clinete de manera simultane "--bidir")
 * **Soporte Speedtest (Ookla):** Permite configurar un ID de servidor específico.
 * **Chequeo de Conectividad:** Antes de iniciar, verifica con Ping y un chequeo de puerto (`5201`) que el servidor de iPerf3 esté accesible.
 * **Resultados Detallados:** Muestra un resumen de los tests en un formato legible y seleccionable (para copiar y pegar).
